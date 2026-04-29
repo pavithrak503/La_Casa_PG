@@ -23,52 +23,86 @@ fun RoleSelectionScreen(
     onAdminClick: () -> Unit,
     onTenantClick: () -> Unit
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .padding(16.dp)
     ) {
-        Box(
+        Column(
             modifier = Modifier
-                .size(240.dp)
-                .padding(bottom = 16.dp),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .align(Alignment.Center)
+                .padding(bottom = 80.dp), // Keeps it higher as requested
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.la_casa_pg),
-                contentDescription = "La Casa PG Logo",
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(20.dp)
+                    .size(240.dp)
+                    .padding(bottom = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.la_casa_pg),
+                    contentDescription = "La Casa PG Logo",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(20.dp)
+                )
+            }
+
+            Text(
+                text = "Welcome to La Casa PG",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(bottom = 32.dp)
             )
+
+            OutlinedButton(
+                onClick = onAdminClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                Text("Admin login")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedButton(
+                onClick = onTenantClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                Text("Tenant login")
+            }
         }
 
-        Text(
-            text = "Welcome to La Casa PG",
-            style = MaterialTheme.typography.headlineLarge,
-            modifier = Modifier.padding(bottom = 32.dp)
-        )
-        
-        Button(
-            onClick = onAdminClick,
+        // Footer with Copyright info
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("I am Admin")
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        OutlinedButton(
-            onClick = onTenantClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-        ) {
-            Text("I am Tenant")
+            Image(
+                painter = painterResource(id = R.drawable.la_casa_logo),
+                contentDescription = "La Casa Logo",
+                modifier = Modifier
+                    .size(160.dp)
+                    .padding(bottom = 4.dp)
+            )
+            Text(
+                text = "La Casa PG is unit of La Casa Groups",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "© 2024 La Casa Groups. All rights reserved.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
         }
     }
 }
