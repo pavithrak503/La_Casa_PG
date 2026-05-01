@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -79,30 +80,29 @@ fun RoleSelectionScreen(
         }
 
         // Footer with Copyright info
-        Row(
+        Column(
             modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
                 painter = painterResource(id = R.drawable.la_casa_logo),
                 contentDescription = "La Casa Logo",
-                modifier = Modifier
-                    .size(40.dp)
+                modifier = Modifier.size(60.dp)
             )
-            Column(modifier = Modifier.offset(x = (-8).dp)) {
-                Text(
-                    text = "Unit of La Casa Groups",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "©2025 La Casa Groups. All rights reserved.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
-            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Unit of La Casa Groups",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "© 2025 La Casa Groups. All rights reserved.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            )
         }
     }
 }

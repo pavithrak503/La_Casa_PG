@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -46,62 +47,91 @@ fun LoginScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
             modifier = Modifier
-                .size(240.dp)
-                .padding(bottom = 16.dp),
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(240.dp)
+                    .padding(bottom = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.la_casa_pg),
+                    contentDescription = "La Casa PG Logo",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(20.dp)
+                )
+            }
+            Text(text = "Tenant Login", style = MaterialTheme.typography.headlineMedium)
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            OutlinedTextField(
+                value = phoneNumber,
+                onValueChange = { 
+                    if (it.all { char -> char.isDigit() } && it.length <= 10) {
+                        phoneNumber = it 
+                    }
+                },
+                label = { Text("Enter Mobile Number") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                modifier = Modifier.fillMaxWidth(),
+                isError = errorMessage != null,
+                trailingIcon = {
+                    if (isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    }
+                }
+            )
+            
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage!!,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Enter your 10-digit registered mobile number to access your dashboard.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+        }
+
+        // Footer with Copyright info
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
-                painter = painterResource(id = R.drawable.la_casa_pg),
-                contentDescription = "La Casa PG Logo",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(20.dp)
+                painter = painterResource(id = R.drawable.la_casa_logo),
+                contentDescription = "La Casa Logo",
+                modifier = Modifier.size(60.dp)
             )
-        }
-        Text(text = "Tenant Login", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        OutlinedTextField(
-            value = phoneNumber,
-            onValueChange = { 
-                if (it.all { char -> char.isDigit() } && it.length <= 10) {
-                    phoneNumber = it 
-                }
-            },
-            label = { Text("Enter Mobile Number") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-            modifier = Modifier.fillMaxWidth(),
-            isError = errorMessage != null,
-            trailingIcon = {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                }
-            }
-        )
-        
-        if (errorMessage != null) {
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = errorMessage!!,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 4.dp)
+                text = "Unit of La Casa Groups",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "© 2025 La Casa Groups. All rights reserved.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
             )
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "Enter your 10-digit registered mobile number to access your dashboard.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
