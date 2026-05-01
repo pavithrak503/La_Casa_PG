@@ -17,8 +17,21 @@
 #-keepattributes SourceFile,LineNumberTable
 
 # Keep all data models for serialization
--keepattributes *Annotation*, Signature, InnerClasses
+-keepattributes *Annotation*, Signature, InnerClasses, EnclosingMethod
 -keepclassmembers class com.hfad.lacasapgmanagement.data.** {
     @kotlinx.serialization.SerialName <fields>;
+    @kotlinx.serialization.Serializable <fields>;
 }
--keep,allowobfuscation class com.hfad.lacasapgmanagement.data.**
+-keep class com.hfad.lacasapgmanagement.data.** { *; }
+
+# Kotlin Serialization
+-keepclassmembers class * {
+    *** Companion;
+    *** serializer(...);
+}
+
+# Ktor & OkHttp (if used via Ktor)
+-keepattributes RuntimeVisible*Annotations
+-keep class io.ktor.** { *; }
+-dontwarn io.ktor.**
+-keep class kotlinx.serialization.json.** { *; }

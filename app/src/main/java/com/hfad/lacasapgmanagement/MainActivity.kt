@@ -41,10 +41,6 @@ class MainActivity : ComponentActivity() {
 fun PgApp(viewModel: TenantViewModel) {
     val navController = rememberNavController()
 
-    LaunchedEffect(Unit) {
-        viewModel.seedDummyData()
-    }
-
     NavHost(navController = navController, startDestination = "roleSelection") {
         composable("roleSelection") {
             RoleSelectionScreen(

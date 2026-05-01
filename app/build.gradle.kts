@@ -15,27 +15,13 @@ android {
     namespace = "com.hfad.lacasapgmanagement"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.hfad.lacasapgmanagement"
+        applicationId = "com.lacasapg.management"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    flavorDimensions += "version"
-    productFlavors {
-        create("admin") {
-            dimension = "version"
-            applicationIdSuffix = ".admin"
-            resValue("string", "app_name", "La Casa Admin")
-        }
-        create("tenant") {
-            dimension = "version"
-            applicationIdSuffix = ".tenant"
-            resValue("string", "app_name", "La Casa Tenant")
-        }
     }
 
     buildTypes {

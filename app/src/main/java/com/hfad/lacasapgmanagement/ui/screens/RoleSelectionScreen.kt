@@ -98,7 +98,7 @@ fun RoleSelectionScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "©2024 La Casa Groups. All rights reserved.",
+                    text = "©2025 La Casa Groups. All rights reserved.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
