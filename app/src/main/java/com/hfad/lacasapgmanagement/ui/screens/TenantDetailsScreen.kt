@@ -97,6 +97,20 @@ fun TenantInfoCard(tenant: Tenant) {
             Text(text = "Phone: ${tenant.phoneNumber}", style = MaterialTheme.typography.bodyLarge)
             Text(text = "Rent: ₹${tenant.rentAmount}", style = MaterialTheme.typography.bodyLarge)
             Text(text = "Deposit: ₹${tenant.depositAmount}", style = MaterialTheme.typography.bodyLarge)
+            if (!tenant.guardianName.isNullOrBlank()) {
+                Text(text = "Guardian: ${tenant.guardianName}", style = MaterialTheme.typography.bodyLarge)
+            }
+            if (!tenant.guardianPhoneNumber.isNullOrBlank()) {
+                Text(text = "Guardian Phone: ${tenant.guardianPhoneNumber}", style = MaterialTheme.typography.bodyLarge)
+            }
+            if (!tenant.address.isNullOrBlank()) {
+                Text(text = "Address: ${tenant.address}", style = MaterialTheme.typography.bodyLarge)
+            }
+            if (tenant.isAadhaarVerified) {
+                Text(text = "Aadhaar: ${tenant.aadhaarNumber} (Verified)", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+            } else if (!tenant.aadhaarNumber.isNullOrBlank()) {
+                Text(text = "Aadhaar: ${tenant.aadhaarNumber} (Not Verified)", style = MaterialTheme.typography.bodyLarge)
+            }
         }
     }
 }

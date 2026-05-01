@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -173,25 +174,50 @@ fun ComplaintItem(
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                     )
                     Text(
+                        text = "Phone: ${complaint.tenantPhone}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Text(
                         text = "Category: ${complaint.category}", 
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
-                Surface(
-                    color = if (complaint.status == "Pending") 
-                        MaterialTheme.colorScheme.error 
-                    else 
-                        MaterialTheme.colorScheme.primaryContainer,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)
-                ) {
-                    Text(
-                        text = complaint.status.uppercase(),
-                        color = if (complaint.status == "Pending") MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 9.sp
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    IconButton(
+                        onClick = {
+                            val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
+                                data = android.net.Uri.parse("tel:${complaint.tenantPhone}")
+                            }
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Phone,
+                            contentDescription = "Call",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Surface(
+                        color = if (complaint.status == "Pending") 
+                            MaterialTheme.colorScheme.error 
+                        else 
+                            MaterialTheme.colorScheme.primaryContainer,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = complaint.status.uppercase(),
+                            color = if (complaint.status == "Pending") MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 9.sp
+                        )
+                    }
                 }
             }
             

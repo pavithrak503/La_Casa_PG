@@ -109,60 +109,12 @@ fun SettingsScreen(
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
             }
             item {
-                var showAutoPollDialog by remember { mutableStateOf(false) }
-                val menuItems by viewModel.allMenuItems.collectAsState()
-                val config by viewModel.pollConfiguration.collectAsState()
-
-                SettingsItem(
-                    title = "Auto-Poll Settings",
-                    subtitle = "Automate daily food attendance polls",
-                    icon = Icons.Outlined.Timer,
-                    onClick = { showAutoPollDialog = true }
-                )
-
-                if (showAutoPollDialog) {
-                    AutoPollSettingsDialog(
-                        config = config,
-                        menuItems = menuItems,
-                        onDismiss = { showAutoPollDialog = false },
-                        onSave = { newConfig -> viewModel.savePollConfiguration(newConfig) }
-                    )
-                }
-            }
-            item {
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-            }
-            item {
                 SettingsItem(
                     title = "Complaint Categories",
                     subtitle = "Manage categories for tenant complaints",
                     icon = Icons.Outlined.Category,
                     onClick = { showCategoryDialog = true }
                 )
-            }
-            item {
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-            }
-            item {
-                var showAutoPollDialog by remember { mutableStateOf(false) }
-                val menuItems by viewModel.allMenuItems.collectAsState()
-                val config by viewModel.pollConfiguration.collectAsState()
-
-                SettingsItem(
-                    title = "Auto-Poll Settings",
-                    subtitle = "Automate daily food attendance polls",
-                    icon = Icons.Outlined.Timer,
-                    onClick = { showAutoPollDialog = true }
-                )
-
-                if (showAutoPollDialog) {
-                    AutoPollSettingsDialog(
-                        config = config,
-                        menuItems = menuItems,
-                        onDismiss = { showAutoPollDialog = false },
-                        onSave = { newConfig -> viewModel.savePollConfiguration(newConfig) }
-                    )
-                }
             }
             item {
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))

@@ -21,6 +21,8 @@ data class Tenant(
     val phoneNumber: String = "",
     @SerialName("room_number")
     val roomNumber: String = "",
+    @SerialName("bed_number")
+    val bedNumber: String = "",
     @SerialName("rent_amount")
     val rentAmount: Double = 0.0,
     @SerialName("deposit_amount")
@@ -36,5 +38,11 @@ data class Tenant(
     @SerialName("is_aadhaar_verified")
     val isAadhaarVerified: Boolean = false,
     @SerialName("aadhaar_number")
-    val aadhaarNumber: String? = null
+    val aadhaarNumber: String? = null,
+    @SerialName("guardian_name")
+    val guardianName: String? = null,
+    @SerialName("guardian_phone_number")
+    val guardianPhoneNumber: String? = null,
+    @SerialName("address")
+    val address: String? = null
 )

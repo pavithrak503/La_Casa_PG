@@ -2,6 +2,7 @@
 
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     kotlin("plugin.serialization") version "2.0.21"
@@ -44,16 +45,6 @@ android {
         resValues = true
     }
 
-    sourceSets {
-        getByName("debug") {
-            java.srcDir("build/generated/ksp/debug/java")
-            java.srcDir("build/generated/ksp/debug/kotlin")
-        }
-        getByName("release") {
-            java.srcDir("build/generated/ksp/release/java")
-            java.srcDir("build/generated/ksp/release/kotlin")
-        }
-    }
 }
 
 dependencies {

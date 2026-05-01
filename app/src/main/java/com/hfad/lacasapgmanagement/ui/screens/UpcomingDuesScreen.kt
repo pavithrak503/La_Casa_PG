@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -50,7 +51,7 @@ fun UpcomingDuesScreen(viewModel: TenantViewModel) {
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(unpaidTenants) { tenant ->
-                    DueItem(tenant = tenant)
+                    DueItem(tenant = tenant, currentMonth = currentMonth)
                 }
             }
         }
@@ -58,7 +59,7 @@ fun UpcomingDuesScreen(viewModel: TenantViewModel) {
 }
 
 @Composable
-fun DueItem(tenant: com.hfad.lacasapgmanagement.data.Tenant) {
+fun DueItem(tenant: com.hfad.lacasapgmanagement.data.Tenant, currentMonth: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
@@ -84,21 +85,52 @@ fun DueItem(tenant: com.hfad.lacasapgmanagement.data.Tenant) {
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "₹${tenant.rentAmount.toInt()}",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.error,
-                    fontWeight = FontWeight.ExtraBold
-                )
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "₹${tenant.rentAmount.toInt()}",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                    Text(
+                        text = tenant.phoneNumber,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
                 Spacer(modifier = Modifier.width(8.dp))
+                val context = androidx.compose.ui.platform.LocalContext.current
                 IconButton(
-                    onClick = { /* Call functionality */ },
+                    onClick = {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
+                            data = android.net.Uri.parse("tel:${tenant.phoneNumber}")
+                        }
+                        context.startActivity(intent)
+                    },
                     modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
                         Icons.Default.Phone, 
                         contentDescription = "Call", 
                         tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                IconButton(
+                    onClick = {
+                        val message = "Hi ${tenant.name}, this is a reminder regarding your PG rent of ₹${tenant.rentAmount.toInt()} for $currentMonth. Please pay at your earliest convenience."
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                            data = android.net.Uri.parse("https://api.whatsapp.com/send?phone=91${tenant.phoneNumber}&text=${android.net.Uri.encode(message)}")
+                        }
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "WhatsApp", 
+                        tint = androidx.compose.ui.graphics.Color(0xFF25D366),
                         modifier = Modifier.size(18.dp)
                     )
                 }

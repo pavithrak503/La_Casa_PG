@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [Tenant::class, Payment::class, Complaint::class, Bed::class, Branch::class, Poll::class, PollVote::class, ComplaintCategory::class, FoodMenuItem::class, PollConfiguration::class, Announcement::class], version = 28, exportSchema = false)
+@Database(entities = [Tenant::class, Payment::class, Complaint::class, Bed::class, Branch::class, Poll::class, PollVote::class, ComplaintCategory::class, FoodMenuItem::class, PollConfiguration::class, Announcement::class], version = 31, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun tenantDao(): TenantDao
     abstract fun paymentDao(): PaymentDao

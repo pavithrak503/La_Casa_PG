@@ -5,20 +5,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bed
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,133 +36,147 @@ fun BedListScreen(
     val branches by viewModel.allBranches.collectAsState()
     var selectedBranchFilter by remember { mutableStateOf("All") }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        if (!isEmbedded && onNavigateBack != null) {
-            @OptIn(ExperimentalMaterial3Api::class)
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = MaterialTheme.colorScheme.primary,
-                ),
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier.size(48.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.la_casa_pg),
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(4.dp)
+    val filteredBeds = if (selectedBranchFilter == "All") beds else beds.filter { it.branch == selectedBranchFilter }
+    
+    var showAddBedDialog by remember { mutableStateOf(false) }
+
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showAddBedDialog = true },
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Bed")
+            }
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp)
+        ) {
+            if (!isEmbedded && onNavigateBack != null) {
+                @OptIn(ExperimentalMaterial3Api::class)
+                TopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.White,
+                        titleContentColor = MaterialTheme.colorScheme.primary,
+                    ),
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier.size(48.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.la_casa_pg),
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(4.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text("Bed Management", fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // Branch Filter (More compact height)
+            ScrollableTabRow(
+                selectedTabIndex = if (selectedBranchFilter == "All") 0 else (branches.indexOfFirst { it.name == selectedBranchFilter } + 1).coerceAtLeast(0),
+                edgePadding = 0.dp,
+                containerColor = Color.Transparent,
+                divider = {},
+                modifier = Modifier.height(48.dp)
+            ) {
+                Tab(
+                    selected = selectedBranchFilter == "All",
+                    onClick = { selectedBranchFilter = "All" },
+                    text = { Text("All") }
+                )
+                branches.forEach { branch ->
+                    Tab(
+                        selected = selectedBranchFilter == branch.name,
+                        onClick = { selectedBranchFilter = branch.name },
+                        text = { Text(branch.name) }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Group by Branch then Room
+            val branchesInFilter = filteredBeds.groupBy { it.branch }
+
+            if (filteredBeds.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No beds found for this selection.")
+                }
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(bottom = 80.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    branchesInFilter.forEach { (branch, bedsInBranch) ->
+                        item {
+                            Text(
+                                text = branch.uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text("Bed Management", fontWeight = FontWeight.Bold)
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-        }
 
-        // Branch Filter (More compact height)
-        ScrollableTabRow(
-            selectedTabIndex = if (selectedBranchFilter == "All") 0 else (branches.indexOfFirst { it.name == selectedBranchFilter } + 1).coerceAtLeast(0),
-            edgePadding = 0.dp,
-            containerColor = Color.Transparent,
-            divider = {},
-            modifier = Modifier.height(48.dp)
-        ) {
-            Tab(
-                selected = selectedBranchFilter == "All",
-                onClick = { selectedBranchFilter = "All" },
-                text = { Text("All") }
-            )
-            branches.forEach { branch ->
-                Tab(
-                    selected = selectedBranchFilter == branch.name,
-                    onClick = { selectedBranchFilter = branch.name },
-                    text = { Text(branch.name) }
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        val filteredBeds = if (selectedBranchFilter == "All") beds else beds.filter { it.branch == selectedBranchFilter }
-        
-        // Group by Branch then Room
-        val branchesInFilter = filteredBeds.groupBy { it.branch }
-
-        if (filteredBeds.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No beds found for this selection.")
-            }
-        } else {
-            LazyColumn(
-                contentPadding = PaddingValues(bottom = 80.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                branchesInFilter.forEach { (branch, bedsInBranch) ->
-                    item {
-                        Text(
-                            text = branch.uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                        )
-                    }
-
-                    val roomsInBranch = bedsInBranch.groupBy { it.roomNumber }
-                    roomsInBranch.forEach { (room, bedsInRoom) ->
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "R$room",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier.width(40.dp),
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.Gray
-                                )
-                                
+                        val roomsInBranch = bedsInBranch.groupBy { it.roomNumber }
+                        roomsInBranch.forEach { (room, bedsInRoom) ->
+                            item {
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    bedsInRoom.forEach { bed ->
-                                        var showDetail by remember { mutableStateOf(false) }
-                                        
-                                        NanoBedItem(
-                                            bed = bed,
-                                            onClick = { showDetail = true }
-                                        )
-
-                                        if (showDetail) {
-                                            BedDetailDialog(
+                                    Text(
+                                        text = "R$room",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.width(40.dp),
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Gray
+                                    )
+                                    
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        bedsInRoom.forEach { bed ->
+                                            var showDetail by remember { mutableStateOf(false) }
+                                            
+                                            NanoBedItem(
                                                 bed = bed,
-                                                onDismiss = { showDetail = false },
-                                                onToggleOccupancy = {
-                                                    viewModel.updateBed(bed.copy(isOccupied = !bed.isOccupied))
-                                                },
-                                                onDelete = {
-                                                    viewModel.deleteBed(bed.id)
-                                                    showDetail = false
-                                                }
+                                                onClick = { showDetail = true }
                                             )
+
+                                            if (showDetail) {
+                                                BedDetailDialog(
+                                                    bed = bed,
+                                                    onDismiss = { showDetail = false },
+                                                    onToggleOccupancy = {
+                                                        viewModel.updateBed(bed.copy(isOccupied = !bed.isOccupied))
+                                                    },
+                                                    onDelete = {
+                                                        viewModel.deleteBed(bed.id)
+                                                        showDetail = false
+                                                    }
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -179,6 +186,17 @@ fun BedListScreen(
                 }
             }
         }
+    }
+
+    if (showAddBedDialog) {
+        AddBedDialog(
+            branches = branches,
+            onDismiss = { showAddBedDialog = false },
+            onConfirm = { room, bed, branch ->
+                viewModel.addBed(com.hfad.lacasapgmanagement.data.Bed(roomNumber = room, bedNumber = bed, branch = branch))
+                showAddBedDialog = false
+            }
+        )
     }
 }
 

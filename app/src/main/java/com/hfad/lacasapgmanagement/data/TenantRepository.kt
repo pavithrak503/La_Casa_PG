@@ -29,6 +29,8 @@ data class TenantSupabaseDto(
     val phoneNumber: String,
     @SerialName("room_number")
     val roomNumber: String,
+    @SerialName("bed_number")
+    val bedNumber: String = "",
     @SerialName("rent_amount")
     val rentAmount: Double,
     @SerialName("deposit_amount")
@@ -40,7 +42,13 @@ data class TenantSupabaseDto(
     @SerialName("branch")
     val branch: String = "Main Branch",
     @SerialName("password")
-    val password: String = "1234"
+    val password: String = "1234",
+    @SerialName("guardian_name")
+    val guardianName: String? = null,
+    @SerialName("guardian_phone_number")
+    val guardianPhoneNumber: String? = null,
+    @SerialName("address")
+    val address: String? = null
 )
 
 @Serializable
@@ -51,6 +59,8 @@ data class TenantInsertDto(
     val phoneNumber: String,
     @SerialName("room_number")
     val roomNumber: String,
+    @SerialName("bed_number")
+    val bedNumber: String = "",
     @SerialName("rent_amount")
     val rentAmount: Double,
     @SerialName("deposit_amount")
@@ -62,7 +72,13 @@ data class TenantInsertDto(
     @SerialName("branch")
     val branch: String = "Main Branch",
     @SerialName("password")
-    val password: String = "1234"
+    val password: String = "1234",
+    @SerialName("guardian_name")
+    val guardianName: String? = null,
+    @SerialName("guardian_phone_number")
+    val guardianPhoneNumber: String? = null,
+    @SerialName("address")
+    val address: String? = null
 )
 
 @Serializable
@@ -319,12 +335,16 @@ class TenantRepository(
                 name = tenant.name,
                 phoneNumber = trimmedPhone,
                 roomNumber = tenant.roomNumber,
+                bedNumber = tenant.bedNumber,
                 rentAmount = tenant.rentAmount,
                 depositAmount = tenant.depositAmount,
                 joiningDate = tenant.joiningDate,
                 isActive = tenant.isActive,
                 branch = tenant.branch,
-                password = tenant.password
+                password = tenant.password,
+                guardianName = tenant.guardianName,
+                guardianPhoneNumber = tenant.guardianPhoneNumber,
+                address = tenant.address
             )
             
             println("Supabase: Sending DTO: $supabaseDto")
@@ -347,12 +367,16 @@ class TenantRepository(
                 name = tenant.name,
                 phoneNumber = tenant.phoneNumber,
                 roomNumber = tenant.roomNumber,
+                bedNumber = tenant.bedNumber,
                 rentAmount = tenant.rentAmount,
                 depositAmount = tenant.depositAmount,
                 joiningDate = tenant.joiningDate,
                 isActive = tenant.isActive,
                 branch = tenant.branch,
-                password = tenant.password
+                password = tenant.password,
+                guardianName = tenant.guardianName,
+                guardianPhoneNumber = tenant.guardianPhoneNumber,
+                address = tenant.address
             )
             println("Supabase: Updating DTO: $supabaseDto")
             supabase.from("tenants").update<TenantSupabaseDto>(supabaseDto) {
@@ -442,12 +466,16 @@ class TenantRepository(
                     name = dto.name,
                     phoneNumber = dto.phoneNumber,
                     roomNumber = dto.roomNumber,
+                    bedNumber = dto.bedNumber,
                     rentAmount = dto.rentAmount,
                     depositAmount = dto.depositAmount,
                     joiningDate = dto.joiningDate,
                     isActive = dto.isActive,
                     branch = dto.branch,
-                    password = dto.password
+                    password = dto.password,
+                    guardianName = dto.guardianName,
+                    guardianPhoneNumber = dto.guardianPhoneNumber,
+                    address = dto.address
                 )
                 tenantDao.insertTenant(tenant)
             }
@@ -480,12 +508,16 @@ class TenantRepository(
                     name = it.name,
                     phoneNumber = it.phoneNumber,
                     roomNumber = it.roomNumber,
+                    bedNumber = it.bedNumber,
                     rentAmount = it.rentAmount,
                     depositAmount = it.depositAmount,
                     joiningDate = it.joiningDate,
                     isActive = it.isActive,
                     branch = it.branch,
-                    password = it.password
+                    password = it.password,
+                    guardianName = it.guardianName,
+                    guardianPhoneNumber = it.guardianPhoneNumber,
+                    address = it.address
                 )
             }
         } catch (e: Exception) {

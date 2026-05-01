@@ -78,4 +78,13 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'tenants' AND COLUMN_NAME = 'aadhaar_number') THEN
         ALTER TABLE tenants ADD COLUMN aadhaar_number TEXT;
     END IF;
+
+    -- Add Guardian fields
+    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'tenants' AND COLUMN_NAME = 'guardian_name') THEN
+        ALTER TABLE tenants ADD COLUMN guardian_name TEXT;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'tenants' AND COLUMN_NAME = 'guardian_phone_number') THEN
+        ALTER TABLE tenants ADD COLUMN guardian_phone_number TEXT;
+    END IF;
 END $$;

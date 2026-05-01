@@ -9,22 +9,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.ui.platform.LocalContext
 import com.hfad.lacasapgmanagement.ui.viewmodel.TenantViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportsScreen(viewModel: TenantViewModel) {
     val tenants by viewModel.allTenants.collectAsState()
     val payments by viewModel.allPayments.collectAsState()
     val beds by viewModel.allBeds.collectAsState()
+    val context = LocalContext.current
+
+    var selectedCalendar by remember { mutableStateOf(Calendar.getInstance()) }
+    val monthFormat = SimpleDateFormat("MMM yyyy", Locale.getDefault())
+    val selectedMonthText = monthFormat.format(selectedCalendar.time)
 
     val totalRevenue = payments.filter { it.status == "Verified" }.sumOf { it.amount }
-    val currentMonth = SimpleDateFormat("MMM yyyy", Locale.getDefault()).format(Date())
+    
     val monthlyRevenue = payments.filter { 
         it.status == "Verified" && 
-        it.month.contains(currentMonth.split(" ")[0], ignoreCase = true) &&
-        it.month.contains(currentMonth.split(" ")[1])
+        it.month.contains(selectedMonthText.split(" ")[0], ignoreCase = true) &&
+        it.month.contains(selectedMonthText.split(" ")[1])
     }.sumOf { it.amount }
 
     val occupancyRate = if (beds.isNotEmpty()) {
@@ -36,17 +46,66 @@ fun ReportsScreen(viewModel: TenantViewModel) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            text = "Business Reports",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Business Reports",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Row {
+                IconButton(onClick = {
+                    val datePickerDialog = android.app.DatePickerDialog(
+                        context,
+                        { _, year, month, _ ->
+                            val newCal = Calendar.getInstance()
+                            newCal.set(Calendar.YEAR, year)
+                            newCal.set(Calendar.MONTH, month)
+                            selectedCalendar = newCal
+                        },
+                        selectedCalendar.get(Calendar.YEAR),
+                        selectedCalendar.get(Calendar.MONTH),
+                        selectedCalendar.get(Calendar.DAY_OF_MONTH)
+                    )
+                    datePickerDialog.show()
+                }) {
+                    Icon(Icons.Default.DateRange, contentDescription = "Select Month")
+                }
+                
+                IconButton(onClick = {
+                    val reportText = """
+                        PG Business Report - $selectedMonthText
+                        --------------------------------
+                        Monthly Revenue: ₹${monthlyRevenue.toInt()}
+                        Total Revenue: ₹${totalRevenue.toInt()}
+                        Occupancy Rate: $occupancyRate%
+                        Total Tenants: ${tenants.size}
+                        Available Beds: ${beds.count { !it.isOccupied }}
+                    """.trimIndent()
+                    
+                    val sendIntent: android.content.Intent = android.content.Intent().apply {
+                        action = android.content.Intent.ACTION_SEND
+                        putExtra(android.content.Intent.EXTRA_TEXT, reportText)
+                        type = "text/plain"
+                    }
+                    val shareIntent = android.content.Intent.createChooser(sendIntent, null)
+                    context.startActivity(shareIntent)
+                }) {
+                    Icon(Icons.Default.Share, contentDescription = "Export Report")
+                }
+            }
+        }
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item {
                 ReportCard(
-                    title = "Monthly Revenue ($currentMonth)",
+                    title = "Monthly Revenue ($selectedMonthText)",
                     value = "₹${monthlyRevenue.toInt()}",
                     color = MaterialTheme.colorScheme.primary
                 )
