@@ -11,6 +11,9 @@ interface PollDao {
     @Query("SELECT * FROM polls WHERE isActive = 1 ORDER BY id DESC LIMIT 1")
     fun getActivePoll(): Flow<Poll?>
 
+    @Query("SELECT * FROM polls WHERE date = :date LIMIT 1")
+    suspend fun getPollByDate(date: String): Poll?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPoll(poll: Poll)
 

@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -27,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.hfad.lacasapgmanagement.R
 import com.hfad.lacasapgmanagement.data.Bed
 import com.hfad.lacasapgmanagement.ui.viewmodel.TenantViewModel
@@ -80,18 +82,13 @@ fun BedListScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        Text(
-            text = "Bed Information",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        // Branch Filter
+        // Branch Filter (More compact height)
         ScrollableTabRow(
             selectedTabIndex = if (selectedBranchFilter == "All") 0 else (branches.indexOfFirst { it.name == selectedBranchFilter } + 1).coerceAtLeast(0),
             edgePadding = 0.dp,
             containerColor = Color.Transparent,
-            divider = {}
+            divider = {},
+            modifier = Modifier.height(48.dp)
         ) {
             Tab(
                 selected = selectedBranchFilter == "All",
@@ -110,49 +107,74 @@ fun BedListScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         val filteredBeds = if (selectedBranchFilter == "All") beds else beds.filter { it.branch == selectedBranchFilter }
-        val groupedBeds = filteredBeds.groupBy { it.branch }
-
-        // Legend / Summary
-        val occupiedCount = filteredBeds.count { it.isOccupied }
-        val totalCount = filteredBeds.size
-        Row(
-            modifier = Modifier.padding(bottom = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            StatusIndicator(color = Color(0xFF4CAF50), label = "Vacant (${totalCount - occupiedCount})")
-            Spacer(modifier = Modifier.width(16.dp))
-            StatusIndicator(color = Color(0xFFF44336), label = "Occupied ($occupiedCount)")
-        }
+        
+        // Group by Branch then Room
+        val branchesInFilter = filteredBeds.groupBy { it.branch }
 
         if (filteredBeds.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("No beds found for this selection.")
             }
         } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
+            LazyColumn(
                 contentPadding = PaddingValues(bottom = 80.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                groupedBeds.forEach { (branch, bedsInBranch) ->
-                    item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+                branchesInFilter.forEach { (branch, bedsInBranch) ->
+                    item {
                         Text(
-                            text = branch,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
+                            text = branch.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
                         )
                     }
-                    items(bedsInBranch) { bed ->
-                        GraphicalBedItem(
-                            bed = bed,
-                            onDelete = { viewModel.deleteBed(bed.id) },
-                            onToggleOccupancy = {
-                                viewModel.updateBed(bed.copy(isOccupied = !bed.isOccupied))
+
+                    val roomsInBranch = bedsInBranch.groupBy { it.roomNumber }
+                    roomsInBranch.forEach { (room, bedsInRoom) ->
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "R$room",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.width(40.dp),
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.Gray
+                                )
+                                
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    bedsInRoom.forEach { bed ->
+                                        var showDetail by remember { mutableStateOf(false) }
+                                        
+                                        NanoBedItem(
+                                            bed = bed,
+                                            onClick = { showDetail = true }
+                                        )
+
+                                        if (showDetail) {
+                                            BedDetailDialog(
+                                                bed = bed,
+                                                onDismiss = { showDetail = false },
+                                                onToggleOccupancy = {
+                                                    viewModel.updateBed(bed.copy(isOccupied = !bed.isOccupied))
+                                                },
+                                                onDelete = {
+                                                    viewModel.deleteBed(bed.id)
+                                                    showDetail = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
                             }
-                        )
+                        }
                     }
                 }
             }
@@ -175,74 +197,82 @@ fun StatusIndicator(color: Color, label: String) {
 }
 
 @Composable
-fun GraphicalBedItem(bed: Bed, onDelete: () -> Unit, onToggleOccupancy: () -> Unit) {
+fun NanoBedItem(bed: Bed, onClick: () -> Unit) {
     val statusColor = if (bed.isOccupied) Color(0xFFF44336) else Color(0xFF4CAF50)
-    
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onToggleOccupancy() },
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = statusColor.copy(alpha = 0.1f)
-        ),
-        border = androidx.compose.foundation.BorderStroke(1.dp, statusColor.copy(alpha = 0.5f))
-    ) {
-        Box {
-            // Delete button in top right
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.align(Alignment.TopEnd).size(32.dp)
-            ) {
-                Icon(
-                    Icons.Default.Delete, 
-                    contentDescription = "Delete", 
-                    tint = Color.Gray.copy(alpha = 0.6f),
-                    modifier = Modifier.size(16.dp)
-                )
-            }
 
-            Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = if (bed.isOccupied) Icons.Default.Person else Icons.Default.Bed,
-                    contentDescription = null,
-                    tint = statusColor,
-                    modifier = Modifier.size(48.dp)
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Text(
-                    text = "Room ${bed.roomNumber}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Bed ${bed.bedNumber}",
-                    style = MaterialTheme.typography.bodySmall
-                )
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                Surface(
-                    color = statusColor,
-                    shape = RoundedCornerShape(4.dp)
-                ) {
-                    Text(
-                        text = if (bed.isOccupied) "OCCUPIED" else "VACANT",
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                }
-            }
+    Surface(
+        modifier = Modifier
+            .size(30.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(4.dp),
+        color = statusColor,
+        tonalElevation = 2.dp
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = bed.bedNumber,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.ExtraBold
+                ),
+                color = Color.White
+            )
         }
     }
 }
+
+@Composable
+fun BedDetailDialog(
+    bed: Bed,
+    onDismiss: () -> Unit,
+    onToggleOccupancy: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val statusColor = if (bed.isOccupied) Color(0xFFF44336) else Color(0xFF4CAF50)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Bed, contentDescription = null, tint = statusColor)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Room ${bed.roomNumber} - Bed ${bed.bedNumber}")
+            }
+        },
+        text = {
+            Column {
+                Text("Branch: ${bed.branch}")
+                Text("Status: ${if (bed.isOccupied) "Occupied" else "Vacant"}")
+                if (bed.isOccupied && !bed.tenantName.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Current Tenant:", fontWeight = FontWeight.Bold)
+                    Text(bed.tenantName)
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Button(
+                    onClick = onToggleOccupancy,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = statusColor)
+                ) {
+                    Text(if (bed.isOccupied) "Mark as Vacant" else "Mark as Occupied")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        },
+        dismissButton = {
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete Bed", tint = Color.Gray)
+            }
+        }
+    )
+}
+
 
 
 @OptIn(ExperimentalMaterial3Api::class)

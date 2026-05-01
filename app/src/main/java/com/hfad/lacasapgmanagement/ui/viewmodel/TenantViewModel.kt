@@ -11,11 +11,13 @@ import com.hfad.lacasapgmanagement.data.Bed
 import com.hfad.lacasapgmanagement.data.Branch
 import com.hfad.lacasapgmanagement.data.Poll
 import com.hfad.lacasapgmanagement.data.PollVote
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import com.hfad.lacasapgmanagement.data.FoodMenuItem
+import com.hfad.lacasapgmanagement.data.ComplaintCategory
+import com.hfad.lacasapgmanagement.data.PollConfiguration
+import com.hfad.lacasapgmanagement.data.Announcement
+import com.hfad.lacasapgmanagement.data.AadhaarVerifyResponse
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.launch
 
 class TenantViewModel(private val repository: TenantRepository) : ViewModel() {
@@ -66,6 +68,88 @@ class TenantViewModel(private val repository: TenantRepository) : ViewModel() {
             initialValue = null
         )
 
+    val allComplaintCategories: StateFlow<List<ComplaintCategory>> = repository.allComplaintCategories
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    val allMenuItems: StateFlow<List<FoodMenuItem>> = repository.allMenuItems
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    val pollConfiguration: StateFlow<PollConfiguration?> = repository.pollConfiguration
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
+    val allAnnouncements: StateFlow<List<Announcement>> = repository.allAnnouncements
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    fun addAnnouncement(title: String, content: String, isUrgent: Boolean) {
+        viewModelScope.launch {
+            repository.insertAnnouncement(Announcement(title = title, content = content, isUrgent = isUrgent))
+        }
+    }
+
+    fun deleteAnnouncement(announcement: Announcement) {
+        viewModelScope.launch {
+            repository.deleteAnnouncement(announcement)
+        }
+    }
+
+    fun refreshAnnouncements() {
+        viewModelScope.launch {
+            repository.fetchAnnouncementsFromSupabase()
+        }
+    }
+
+    fun savePollConfiguration(config: PollConfiguration) {
+        viewModelScope.launch {
+            repository.savePollConfiguration(config)
+        }
+    }
+
+    fun checkAndCreateAutoPoll() {
+        viewModelScope.launch {
+            repository.checkAndCreateAutoPoll()
+        }
+    }
+
+    fun addComplaintCategory(name: String) {
+        viewModelScope.launch {
+            repository.insertComplaintCategory(ComplaintCategory(name = name))
+        }
+    }
+
+    fun deleteComplaintCategory(category: ComplaintCategory) {
+        viewModelScope.launch {
+            repository.deleteComplaintCategory(category)
+        }
+    }
+
+    fun addMenuItem(name: String, category: String, imageUrl: String? = null) {
+        viewModelScope.launch {
+            repository.insertMenuItem(FoodMenuItem(name = name, category = category, imageUrl = imageUrl))
+        }
+    }
+
+    fun deleteMenuItem(item: FoodMenuItem) {
+        viewModelScope.launch {
+            repository.deleteMenuItem(item)
+        }
+    }
+
     fun getVotesForPoll(pollId: Int): StateFlow<List<PollVote>> {
         return repository.getVotesForPoll(pollId)
             .stateIn(
@@ -79,10 +163,22 @@ class TenantViewModel(private val repository: TenantRepository) : ViewModel() {
         return repository.getVoteForTenant(pollId, tenantId)
     }
 
-    fun createPoll(title: String) {
+    fun createPoll(title: String, breakfastId: Int? = null, lunchId: Int? = null, dinnerId: Int? = null) {
         viewModelScope.launch {
             val date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
-            repository.createPoll(Poll(title = title, date = date))
+            repository.createPoll(Poll(
+                title = title,
+                date = date,
+                breakfastDishId = breakfastId,
+                lunchDishId = lunchId,
+                dinnerDishId = dinnerId
+            ))
+        }
+    }
+
+    fun deactivatePoll(poll: Poll) {
+        viewModelScope.launch {
+            repository.deactivatePoll(poll)
         }
     }
 
@@ -96,6 +192,7 @@ class TenantViewModel(private val repository: TenantRepository) : ViewModel() {
         viewModelScope.launch {
             repository.fetchAllTenantsFromSupabase()
             repository.fetchAllBranchesFromSupabase()
+            repository.fetchAnnouncementsFromSupabase()
         }
     }
 
@@ -206,6 +303,106 @@ class TenantViewModel(private val repository: TenantRepository) : ViewModel() {
     fun deleteBranch(branch: Branch) {
         viewModelScope.launch {
             repository.deleteBranch(branch)
+        }
+    }
+
+    suspend fun generateAadhaarOtp(aadhaarNumber: String): String? {
+        return repository.generateAadhaarOtp(aadhaarNumber)
+    }
+
+    suspend fun verifyAadhaarOtp(otp: String, txnId: String): AadhaarVerifyResponse? {
+        return repository.verifyAadhaarOtp(otp, txnId)
+    }
+
+    fun seedDummyData() {
+        viewModelScope.launch {
+            try {
+                // 1. Seed Branches only if empty
+                val currentBranches = repository.allBranches.firstOrNull() ?: emptyList()
+                if (currentBranches.isEmpty()) {
+                    val branches = listOf("Main Branch", "HSR Layout", "Koramangala")
+                    branches.forEach { repository.insertBranch(Branch(name = it)) }
+                }
+
+                // 2. Seed Complaint Categories only if empty
+                val currentCats = repository.allComplaintCategories.firstOrNull() ?: emptyList()
+                if (currentCats.isEmpty()) {
+                    val categories = listOf("Plumbing", "Electrical", "Cleaning", "Internet", "Food")
+                    categories.forEach { repository.insertComplaintCategory(ComplaintCategory(name = it)) }
+                }
+
+                // 3. Seed Food Menu Items only if empty
+                val currentMenu = repository.allMenuItems.firstOrNull() ?: emptyList()
+                if (currentMenu.isEmpty()) {
+                    val menuItems = listOf(
+                        "Idli Sambar" to "Breakfast",
+                        "Poha" to "Breakfast",
+                        "Veg Thali" to "Lunch",
+                        "Chicken Biryani" to "Lunch",
+                        "Dal Rice" to "Dinner",
+                        "Paratha" to "Dinner"
+                    )
+                    menuItems.forEach { (name, cat) ->
+                        repository.insertMenuItem(FoodMenuItem(name = name, category = cat))
+                    }
+                }
+
+                // 4. Seed Tenants only if empty
+                val currentTenants = repository.allActiveTenants.firstOrNull() ?: emptyList()
+                if (currentTenants.isEmpty()) {
+                    val tenant1 = Tenant(name = "John Doe", phoneNumber = "9876543210", roomNumber = "101", rentAmount = 8000.0, depositAmount = 16000.0, joiningDate = System.currentTimeMillis(), isActive = true, branch = "Main Branch")
+                    val tenant2 = Tenant(name = "Jane Smith", phoneNumber = "9123456789", roomNumber = "202", rentAmount = 7500.0, depositAmount = 15000.0, joiningDate = System.currentTimeMillis(), isActive = true, branch = "HSR Layout")
+
+                    val id1 = repository.insertTenant(tenant1)
+                    repository.insertTenant(tenant2)
+
+                    // 5. Seed Beds (only if tenants were just added)
+                    val beds = listOf(
+                        Bed(roomNumber = "101", bedNumber = "A", isOccupied = true, tenantName = "John Doe", branch = "Main Branch"),
+                        Bed(roomNumber = "101", bedNumber = "B", isOccupied = false, branch = "Main Branch"),
+                        Bed(roomNumber = "202", bedNumber = "A", isOccupied = true, tenantName = "Jane Smith", branch = "HSR Layout")
+                    )
+                    beds.forEach { repository.insertBed(it) }
+
+                    // 6. Seed Complaints
+                    repository.insertComplaint(Complaint(
+                        tenantId = id1,
+                        tenantName = "John Doe",
+                        tenantPhone = "9876543210",
+                        description = "Tap is leaking in the bathroom.",
+                        category = "Plumbing",
+                        status = "Pending",
+                        createdAt = System.currentTimeMillis()
+                    ))
+
+                    // 7. Seed Payments
+                    repository.insertPayment(Payment(
+                        tenantId = id1,
+                        amount = 8000.0,
+                        date = System.currentTimeMillis(),
+                        month = "October 2024",
+                        paymentType = "Rent",
+                        tenantPhone = "9876543210",
+                        status = "Verified"
+                    ))
+                }
+
+                // 8. Seed Poll Configuration only if empty
+                val currentConfig = repository.pollConfiguration.firstOrNull()
+                if (currentConfig == null) {
+                    repository.savePollConfiguration(PollConfiguration(
+                        isAutomationEnabled = true,
+                        defaultBreakfastId = 1,
+                        defaultLunchId = 3,
+                        defaultDinnerId = 5
+                    ))
+                }
+
+                // 9. Trigger Auto Poll
+                repository.checkAndCreateAutoPoll()
+            } catch (e: Exception) {
+                println("Seeding Error: ${e.message}")
+            }
         }
     }
 }

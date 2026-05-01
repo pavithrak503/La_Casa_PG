@@ -2,6 +2,16 @@ package com.hfad.lacasapgmanagement.data
 
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
+import kotlinx.serialization.json.Json
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -13,6 +23,28 @@ import kotlinx.coroutines.flow.firstOrNull
 data class TenantSupabaseDto(
     @SerialName("id")
     val id: Int? = null,
+    @SerialName("name")
+    val name: String,
+    @SerialName("phone_number")
+    val phoneNumber: String,
+    @SerialName("room_number")
+    val roomNumber: String,
+    @SerialName("rent_amount")
+    val rentAmount: Double,
+    @SerialName("deposit_amount")
+    val depositAmount: Double,
+    @SerialName("joining_date")
+    val joiningDate: Long,
+    @SerialName("is_active")
+    val isActive: Boolean,
+    @SerialName("branch")
+    val branch: String = "Main Branch",
+    @SerialName("password")
+    val password: String = "1234"
+)
+
+@Serializable
+data class TenantInsertDto(
     @SerialName("name")
     val name: String,
     @SerialName("phone_number")
@@ -48,7 +80,9 @@ data class PaymentSupabaseDto(
     @SerialName("tenant_phone")
     val tenantPhone: String,
     @SerialName("status")
-    val status: String
+    val status: String,
+    @SerialName("proof_image_url")
+    val proofImageUrl: String? = null
 )
 
 @Serializable
@@ -61,28 +95,168 @@ data class ComplaintSupabaseDto(
     val tenantPhone: String,
     @SerialName("description")
     val description: String,
+    @SerialName("category")
+    val category: String = "General",
     @SerialName("status")
     val status: String,
     @SerialName("created_at")
     val createdAt: Long
 )
 
+@Serializable
+data class BranchSupabaseDto(
+    @SerialName("name")
+    val name: String
+)
+
+@Serializable
+data class BedInsertDto(
+    @SerialName("room_number")
+    val roomNumber: String,
+    @SerialName("bed_number")
+    val bedNumber: String,
+    @SerialName("is_occupied")
+    val isOccupied: Boolean = false,
+    @SerialName("tenant_name")
+    val tenantName: String? = null,
+    @SerialName("branch")
+    val branch: String = "Main Branch"
+)
+
+@Serializable
+data class AnnouncementSupabaseDto(
+    @SerialName("id")
+    val id: Int? = null,
+    @SerialName("title")
+    val title: String,
+    @SerialName("content")
+    val content: String,
+    @SerialName("timestamp")
+    val timestamp: Long,
+    @SerialName("is_urgent")
+    val isUrgent: Boolean
+)
+
 class TenantRepository(
     private val tenantDao: TenantDao,
     private val paymentDao: PaymentDao,
     private val complaintDao: ComplaintDao,
+    private val complaintCategoryDao: ComplaintCategoryDao,
+    private val foodMenuItemDao: FoodMenuItemDao,
     private val bedDao: BedDao,
     private val branchDao: BranchDao,
     private val pollDao: PollDao,
+    private val pollConfigurationDao: PollConfigurationDao,
+    private val announcementDao: AnnouncementDao,
     private val supabase: SupabaseClient
 ) {
+    private val httpClient = HttpClient {
+        install(ContentNegotiation) {
+            json(Json {
+                ignoreUnknownKeys = true
+                coerceInputValues = true
+            })
+        }
+    }
+
+    // Replace with your actual Supabase Edge Function URL or KYC Provider URL
+    private val KYC_BASE_URL = "https://zzfqqbswqfjwgoqkdked.supabase.co/functions/v1/aadhaar-kyc"
+
+    suspend fun generateAadhaarOtp(aadhaarNumber: String): String? {
+        return try {
+            val response = httpClient.post(KYC_BASE_URL + "/send-otp") {
+                contentType(ContentType.Application.Json)
+                header("Authorization", "Bearer ${supabase.supabaseKey}")
+                setBody(AadhaarOtpRequest(aadhaarNumber))
+            }.body<AadhaarOtpResponse>()
+            
+            if (response.status == "success") response.txnId else null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    suspend fun verifyAadhaarOtp(otp: String, txnId: String): AadhaarVerifyResponse? {
+        return try {
+            httpClient.post(KYC_BASE_URL + "/verify-otp") {
+                contentType(ContentType.Application.Json)
+                header("Authorization", "Bearer ${supabase.supabaseKey}")
+                setBody(AadhaarVerifyRequest(txnId, otp))
+            }.body<AadhaarVerifyResponse>()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
     val allActiveTenants: Flow<List<Tenant>> = tenantDao.getAllActiveTenants()
     val allPayments: Flow<List<Payment>> = paymentDao.getAllPayments()
     val allComplaints: Flow<List<Complaint>> = complaintDao.getAllComplaints()
     val allBeds: Flow<List<Bed>> = bedDao.getAllBeds()
     val allBranches: Flow<List<Branch>> = branchDao.getAllBranches()
+    val allComplaintCategories: Flow<List<ComplaintCategory>> = complaintCategoryDao.getAllCategories()
+    val allMenuItems: Flow<List<FoodMenuItem>> = foodMenuItemDao.getAllMenuItems()
     val allPolls: Flow<List<Poll>> = pollDao.getAllPolls()
     val activePoll: Flow<Poll?> = pollDao.getActivePoll()
+    val pollConfiguration: Flow<PollConfiguration?> = pollConfigurationDao.getConfiguration()
+    val allAnnouncements: Flow<List<Announcement>> = announcementDao.getAllAnnouncements()
+
+    fun getMenuItemsByCategory(category: String): Flow<List<FoodMenuItem>> = foodMenuItemDao.getMenuItemsByCategory(category)
+
+    suspend fun insertAnnouncement(announcement: Announcement) {
+        announcementDao.insertAnnouncement(announcement)
+        try {
+            val dto = AnnouncementSupabaseDto(
+                title = announcement.title,
+                content = announcement.content,
+                timestamp = announcement.timestamp,
+                isUrgent = announcement.isUrgent
+            )
+            supabase.from("announcements").insert(dto)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    suspend fun deleteAnnouncement(announcement: Announcement) {
+        announcementDao.deleteAnnouncement(announcement)
+        try {
+            supabase.from("announcements").delete {
+                filter {
+                    eq("id", announcement.id)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    suspend fun fetchAnnouncementsFromSupabase() {
+        try {
+            val dtos = supabase.from("announcements").select().decodeList<AnnouncementSupabaseDto>()
+            dtos.forEach { dto ->
+                val announcement = Announcement(
+                    id = dto.id ?: 0,
+                    title = dto.title,
+                    content = dto.content,
+                    timestamp = dto.timestamp,
+                    isUrgent = dto.isUrgent
+                )
+                announcementDao.insertAnnouncement(announcement)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    suspend fun insertMenuItem(item: FoodMenuItem) {
+        foodMenuItemDao.insertMenuItem(item)
+    }
+
+    suspend fun deleteMenuItem(item: FoodMenuItem) {
+        foodMenuItemDao.deleteMenuItem(item)
+    }
 
     fun getVotesForPoll(pollId: Int): Flow<List<PollVote>> = pollDao.getVotesForPoll(pollId)
 
@@ -94,25 +268,54 @@ class TenantRepository(
         // In a real app, you would also sync to Supabase and send push notifications
     }
 
+    suspend fun deactivatePoll(poll: Poll) {
+        pollDao.updatePoll(poll.copy(isActive = false))
+    }
+
     suspend fun submitVote(vote: PollVote) {
         pollDao.insertVote(vote)
         // Sync to Supabase
+    }
+
+    suspend fun savePollConfiguration(config: PollConfiguration) {
+        pollConfigurationDao.insertConfiguration(config)
+    }
+
+    suspend fun checkAndCreateAutoPoll() {
+        val config = pollConfiguration.firstOrNull() ?: return
+        if (!config.isAutomationEnabled) return
+
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+        val today = sdf.format(java.util.Date())
+        
+        // Check if a poll already exists for today
+        val pollForToday = pollDao.getPollByDate(today)
+
+        if (pollForToday == null) {
+            createPoll(Poll(
+                title = "Food Attendance for $today",
+                date = today,
+                breakfastDishId = config.defaultBreakfastId,
+                lunchDishId = config.defaultLunchId,
+                dinnerDishId = config.defaultDinnerId
+            ))
+        }
     }
 
     fun getTenantById(tenantId: Int): Flow<Tenant?> = tenantDao.getTenantById(tenantId)
 
     suspend fun getLocalTenantByPhone(phone: String): Tenant? = tenantDao.getTenantByPhone(phone)
 
-    suspend fun insertTenant(tenant: Tenant) {
+    suspend fun insertTenant(tenant: Tenant): Int {
         val trimmedPhone = tenant.phoneNumber.trim()
         val tenantWithTrimmedPhone = tenant.copy(phoneNumber = trimmedPhone)
         
         // 1. Save locally to Room
-        tenantDao.insertTenant(tenantWithTrimmedPhone)
+        val localId = tenantDao.insertTenant(tenantWithTrimmedPhone).toInt()
         
         try {
             // 2. Prepare DTO for Supabase
-            val supabaseDto = TenantSupabaseDto(
+            val supabaseDto = TenantInsertDto(
                 name = tenant.name,
                 phoneNumber = trimmedPhone,
                 roomNumber = tenant.roomNumber,
@@ -126,7 +329,7 @@ class TenantRepository(
             
             println("Supabase: Sending DTO: $supabaseDto")
             
-            supabase.from("tenants").upsert<TenantSupabaseDto>(supabaseDto) {
+            supabase.from("tenants").upsert<TenantInsertDto>(supabaseDto) {
                 onConflict = "phone_number"
             }
             println("Supabase: Insert successful for ${tenant.name}")
@@ -134,6 +337,7 @@ class TenantRepository(
             println("Supabase Error: ${e.message}")
             e.printStackTrace()
         }
+        return localId
     }
 
     suspend fun updateTenant(tenant: Tenant) {
@@ -193,7 +397,8 @@ class TenantRepository(
                     month = payment.month,
                     paymentType = payment.paymentType,
                     tenantPhone = payment.tenantPhone,
-                    status = payment.status
+                    status = payment.status,
+                    proofImageUrl = payment.proofImageUrl
                 )
                 
                 supabase.from("payments").insert(supabasePayment)
@@ -320,6 +525,7 @@ class TenantRepository(
                     tenantName = complaint.tenantName,
                     tenantPhone = complaint.tenantPhone,
                     description = complaint.description,
+                    category = complaint.category,
                     status = complaint.status,
                     createdAt = complaint.createdAt
                 )
@@ -350,7 +556,13 @@ class TenantRepository(
     suspend fun updateComplaint(complaint: Complaint) {
         complaintDao.updateComplaint(complaint)
         try {
-            supabase.from("complaints").update<Complaint>(complaint) {
+            supabase.from("complaints").update(
+                buildJsonObject {
+                    put("status", complaint.status)
+                    put("category", complaint.category)
+                    put("description", complaint.description)
+                }
+            ) {
                 filter {
                     eq("id", complaint.id)
                 }
@@ -360,10 +572,35 @@ class TenantRepository(
         }
     }
 
+    suspend fun insertComplaintCategory(category: ComplaintCategory) {
+        complaintCategoryDao.insertCategory(category)
+        try {
+            val dto = buildJsonObject {
+                put("name", category.name)
+            }
+            supabase.from("complaint_categories").upsert(dto) {
+                onConflict = "name"
+            }
+        } catch (e: Exception) {
+            println("Supabase Category Error: ${e.message}")
+        }
+    }
+
+    suspend fun deleteComplaintCategory(category: ComplaintCategory) {
+        complaintCategoryDao.deleteCategory(category)
+    }
+
     suspend fun insertBed(bed: Bed) {
         bedDao.insertBed(bed)
         try {
-            supabase.from("beds").insert<Bed>(bed)
+            val dto = BedInsertDto(
+                roomNumber = bed.roomNumber,
+                bedNumber = bed.bedNumber,
+                isOccupied = bed.isOccupied,
+                tenantName = bed.tenantName,
+                branch = bed.branch
+            )
+            supabase.from("beds").insert<BedInsertDto>(dto)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -398,9 +635,12 @@ class TenantRepository(
     suspend fun insertBranch(branch: Branch) {
         branchDao.insertBranch(branch)
         try {
-            supabase.from("branches").insert<Branch>(branch)
+            val dto = BranchSupabaseDto(name = branch.name)
+            supabase.from("branches").upsert(dto) {
+                onConflict = "name"
+            }
         } catch (e: Exception) {
-            e.printStackTrace()
+            println("Supabase Branch Error: ${e.message}")
         }
     }
 

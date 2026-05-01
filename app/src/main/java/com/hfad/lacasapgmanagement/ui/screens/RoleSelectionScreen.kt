@@ -79,30 +79,30 @@ fun RoleSelectionScreen(
         }
 
         // Footer with Copyright info
-        Column(
+        Row(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .align(Alignment.BottomStart)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
                 painter = painterResource(id = R.drawable.la_casa_logo),
                 contentDescription = "La Casa Logo",
                 modifier = Modifier
-                    .size(160.dp)
-                    .padding(bottom = 4.dp)
+                    .size(40.dp)
             )
-            Text(
-                text = "La Casa PG is unit of La Casa Groups",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "© 2024 La Casa Groups. All rights reserved.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-            )
+            Column(modifier = Modifier.offset(x = (-8).dp)) {
+                Text(
+                    text = "Unit of La Casa Groups",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "©2024 La Casa Groups. All rights reserved.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
         }
     }
 }

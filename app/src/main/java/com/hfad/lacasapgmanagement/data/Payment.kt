@@ -36,5 +36,9 @@ data class Payment(
     @SerialName("tenant_phone")
     val tenantPhone: String = "", // Added to facilitate fetching for tenant app
     @SerialName("status")
-    val status: String = "Pending" // "Pending", "Verified", "Rejected"
+    val status: String = "Pending", // "Pending", "Verified", "Rejected"
+    @SerialName("receipt_url")
+    val receiptUrl: String? = null,
+    @SerialName("proof_image_url")
+    val proofImageUrl: String? = null
 )

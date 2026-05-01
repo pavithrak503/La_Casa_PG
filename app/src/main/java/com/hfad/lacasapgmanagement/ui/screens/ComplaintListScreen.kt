@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.hfad.lacasapgmanagement.data.Complaint
 import com.hfad.lacasapgmanagement.ui.viewmodel.TenantViewModel
 import java.text.SimpleDateFormat
@@ -22,20 +23,16 @@ fun ComplaintListScreen(viewModel: TenantViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(12.dp)
     ) {
-        Text(
-            text = "All Complaints",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
         if (complaints.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No complaints found.")
+                Text("No complaints found.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.outline)
             }
         } else {
-            LazyColumn {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 items(complaints) { complaint ->
                     ComplaintItem(
                         complaint = complaint,
@@ -49,14 +46,18 @@ fun ComplaintListScreen(viewModel: TenantViewModel) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddComplaintDialog(
+    categories: List<com.hfad.lacasapgmanagement.data.ComplaintCategory>,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, String) -> Unit
+    onConfirm: (String, String, String, String) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf(if (categories.isNotEmpty()) categories[0].name else "General") }
+    var expanded by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -75,17 +76,57 @@ fun AddComplaintDialog(
                     label = { Text("Phone Number") },
                     modifier = Modifier.fillMaxWidth()
                 )
+                
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded },
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = selectedCategory,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Category") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        if (categories.isEmpty()) {
+                            DropdownMenuItem(
+                                text = { Text("General") },
+                                onClick = {
+                                    selectedCategory = "General"
+                                    expanded = false
+                                }
+                            )
+                        } else {
+                            categories.forEach { category ->
+                                DropdownMenuItem(
+                                    text = { Text(category.name) },
+                                    onClick = {
+                                        selectedCategory = category.name
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
                     label = { Text("Description") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                 )
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(name, phone, description) },
+                onClick = { onConfirm(name, phone, description, selectedCategory) },
                 enabled = name.isNotBlank() && phone.isNotBlank() && description.isNotBlank()
             ) {
                 Text("Add")
@@ -105,39 +146,62 @@ fun ComplaintItem(
     complaint: Complaint,
     onResolveClick: () -> Unit = {}
 ) {
-    val dateFormat = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth(),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (complaint.status == "Pending") 
-                MaterialTheme.colorScheme.errorContainer 
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f) 
             else 
-                MaterialTheme.colorScheme.surfaceVariant
-        )
+                MaterialTheme.colorScheme.surface
+        ),
+        border = if (complaint.status == "Pending") 
+            androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+        else null
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(text = complaint.tenantName, style = MaterialTheme.typography.titleMedium)
-                    Text(text = "Room: ${complaint.tenantPhone}", style = MaterialTheme.typography.bodySmall)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = complaint.tenantName, 
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    )
+                    Text(
+                        text = "Category: ${complaint.category}", 
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
-                Badge(
-                    containerColor = if (complaint.status == "Pending") 
+                Surface(
+                    color = if (complaint.status == "Pending") 
                         MaterialTheme.colorScheme.error 
                     else 
-                        MaterialTheme.colorScheme.primary
+                        MaterialTheme.colorScheme.primaryContainer,
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)
                 ) {
-                    Text(complaint.status, color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.padding(4.dp))
+                    Text(
+                        text = complaint.status.uppercase(),
+                        color = if (complaint.status == "Pending") MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 9.sp
+                    )
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = complaint.description, style = MaterialTheme.typography.bodyLarge)
+            
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = complaint.description, 
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            
             Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -146,11 +210,18 @@ fun ComplaintItem(
             ) {
                 Text(
                     text = dateFormat.format(Date(complaint.createdAt)),
-                    style = MaterialTheme.typography.labelSmall
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                    fontSize = 10.sp
                 )
                 if (complaint.status == "Pending") {
-                    TextButton(onClick = onResolveClick) {
-                        Text("Mark as Resolved")
+                    FilledTonalButton(
+                        onClick = onResolveClick,
+                        modifier = Modifier.height(28.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Resolve", style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }

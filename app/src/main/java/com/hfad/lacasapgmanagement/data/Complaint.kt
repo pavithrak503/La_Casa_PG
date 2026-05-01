@@ -19,6 +19,8 @@ data class Complaint(
     val tenantPhone: String = "",
     @SerialName("description")
     val description: String = "",
+    @SerialName("category")
+    val category: String = "General",
     @SerialName("status")
     val status: String = "Pending", // Pending, Resolved
     @SerialName("created_at")

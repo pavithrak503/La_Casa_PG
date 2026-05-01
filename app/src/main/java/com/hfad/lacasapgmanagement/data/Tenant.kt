@@ -32,5 +32,9 @@ data class Tenant(
     @SerialName("branch")
     val branch: String = "Main Branch",
     @SerialName("password")
-    val password: String = "1234"
+    val password: String = "1234",
+    @SerialName("is_aadhaar_verified")
+    val isAadhaarVerified: Boolean = false,
+    @SerialName("aadhaar_number")
+    val aadhaarNumber: String? = null
 )

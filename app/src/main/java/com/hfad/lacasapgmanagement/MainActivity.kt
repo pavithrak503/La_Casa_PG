@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.runtime.LaunchedEffect
 import com.hfad.lacasapgmanagement.ui.screens.AddTenantScreen
 import com.hfad.lacasapgmanagement.ui.screens.AdminMainScreen
 import com.hfad.lacasapgmanagement.ui.screens.BranchConfigScreen
@@ -39,6 +40,11 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun PgApp(viewModel: TenantViewModel) {
     val navController = rememberNavController()
+
+    LaunchedEffect(Unit) {
+        viewModel.seedDummyData()
+    }
+
     NavHost(navController = navController, startDestination = "roleSelection") {
         composable("roleSelection") {
             RoleSelectionScreen(
@@ -90,13 +96,9 @@ fun PgApp(viewModel: TenantViewModel) {
                 onNavigateBack = { navController.popBackStack() },
                 onConfigureBranchesClick = { navController.navigate("branchConfig") },
                 onManageBedsClick = {
-                    // We can either navigate to a separate bed management screen 
-                    // or pass a state back to AdminMainScreen. 
-                    // For now, let's assume we can navigate to bedList if we expose it as a route,
-                    // but BedList is currently a tab in AdminMainScreen.
-                    // If the user wants it inside settings, maybe it should be a separate route.
                     navController.navigate("bedList")
-                }
+                },
+                viewModel = viewModel
             )
         }
         composable("bedList") {

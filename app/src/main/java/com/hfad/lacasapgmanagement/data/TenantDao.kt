@@ -20,11 +20,14 @@ interface TenantDao {
     suspend fun getTenantByPhone(phone: String): Tenant?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertTenant(tenant: Tenant)
+    suspend fun insertTenant(tenant: Tenant): Long
 
     @Update
     suspend fun updateTenant(tenant: Tenant)
 
     @Delete
     suspend fun deleteTenant(tenant: Tenant)
+
+    @Query("DELETE FROM tenants")
+    suspend fun deleteAllTenants()
 }

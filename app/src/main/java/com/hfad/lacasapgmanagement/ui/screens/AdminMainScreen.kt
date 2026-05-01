@@ -7,10 +7,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Announcement
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.automirrored.outlined.Announcement
 import androidx.compose.material.icons.automirrored.outlined.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.EventNote
+import androidx.compose.material.icons.automirrored.outlined.EventNote
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,6 +42,21 @@ fun AdminMainScreen(
     
     val tenants by viewModel.allTenants.collectAsState()
     val branches by viewModel.allBranches.collectAsState()
+    val categories by viewModel.allComplaintCategories.collectAsState()
+
+    // Define navigation items dynamically
+    data class NavItem(val id: Int, val label: String, val icon: ImageVector, val selectedIcon: ImageVector)
+    
+    val navItems = listOf(
+        NavItem(0, "Tenants", Icons.Outlined.Group, Icons.Filled.Group),
+        NavItem(1, "Beds", Icons.Outlined.Bed, Icons.Filled.Bed),
+        NavItem(2, "Payments", Icons.Outlined.Payments, Icons.Filled.Payments),
+        NavItem(3, "Complaints", Icons.Outlined.ReportProblem, Icons.Filled.ReportProblem),
+        NavItem(4, "Dues", Icons.AutoMirrored.Outlined.EventNote, Icons.AutoMirrored.Filled.EventNote),
+        NavItem(5, "Poll", Icons.Outlined.Poll, Icons.Filled.Poll),
+        NavItem(6, "Reports", Icons.Outlined.BarChart, Icons.Filled.BarChart),
+        NavItem(7, "Announce", Icons.AutoMirrored.Outlined.Announcement, Icons.AutoMirrored.Filled.Announcement)
+    )
 
     Scaffold(
         topBar = {
@@ -74,56 +95,63 @@ fun AdminMainScreen(
             )
         },
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 3.dp
             ) {
-                NavigationBarItem(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    icon = { Icon(if (selectedTab == 0) Icons.Filled.Group else Icons.Outlined.Group, contentDescription = "Tenants") },
-                    label = { Text("Tenants") }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    icon = { Icon(if (selectedTab == 1) Icons.Filled.Payments else Icons.Outlined.Payments, contentDescription = "Payments") },
-                    label = { Text("Payments") }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 },
-                    icon = { Icon(if (selectedTab == 2) Icons.Filled.ReportProblem else Icons.Outlined.ReportProblem, contentDescription = "Complaints") },
-                    label = { Text("Complaints") }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 3,
-                    onClick = { selectedTab = 3 },
-                    icon = { Icon(if (selectedTab == 3) Icons.Filled.EventNote else Icons.Outlined.EventNote, contentDescription = "Dues") },
-                    label = { Text("Dues") }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 4,
-                    onClick = { selectedTab = 4 },
-                    icon = { Icon(if (selectedTab == 4) Icons.Filled.Poll else Icons.Outlined.Poll, contentDescription = "Poll") },
-                    label = { Text("Poll") }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 5,
-                    onClick = { selectedTab = 5 },
-                    icon = { Icon(if (selectedTab == 5) Icons.Filled.BarChart else Icons.Outlined.BarChart, contentDescription = "Reports") },
-                    label = { Text("Reports") }
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .windowInsetsPadding(NavigationBarDefaults.windowInsets)
+                        .padding(vertical = 4.dp)
+                ) {
+                    navItems.chunked(4).forEach { rowItems ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            rowItems.forEach { item ->
+                                Box(modifier = Modifier.width(90.dp)) {
+                                    NavigationBar(
+                                        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                                        tonalElevation = 0.dp,
+                                        modifier = Modifier.height(80.dp)
+                                    ) {
+                                        NavigationBarItem(
+                                            selected = selectedTab == item.id,
+                                            onClick = { selectedTab = item.id },
+                                            icon = {
+                                                Icon(
+                                                    if (selectedTab == item.id) item.selectedIcon else item.icon,
+                                                    contentDescription = item.label
+                                                )
+                                            },
+                                            label = {
+                                                Text(
+                                                    item.label,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    maxLines = 1
+                                                )
+                                            },
+                                            alwaysShowLabel = true
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         floatingActionButton = {
-            if (selectedTab == 0 || selectedTab == 1 || selectedTab == 2) {
+            if (selectedTab in 0..3) {
                 FloatingActionButton(
                     onClick = {
                         when (selectedTab) {
                             0 -> onAddTenantClick()
-                            1 -> showAddPaymentDialog = true
-                            2 -> showAddComplaintDialog = true
+                            1 -> showAddBedDialog = true
+                            2 -> showAddPaymentDialog = true
+                            3 -> showAddComplaintDialog = true
                         }
                     },
                     containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -150,21 +178,29 @@ fun AdminMainScreen(
                     onLogoutClick = onLogoutClick,
                     isEmbedded = true
                 )
-                1 -> PaymentListScreen(
+                1 -> BedListScreen(
+                    viewModel = viewModel,
+                    isEmbedded = true
+                )
+                2 -> PaymentListScreen(
                     viewModel = viewModel
                 )
-                2 -> ComplaintListScreen(
+                3 -> ComplaintListScreen(
                     viewModel = viewModel
                 )
-                3 -> UpcomingDuesScreen(
+                4 -> UpcomingDuesScreen(
                     viewModel = viewModel
                 )
-                4 -> PollScreen(
+                5 -> PollScreen(
                     viewModel = viewModel,
                     isAdmin = true
                 )
-                5 -> ReportsScreen(
+                6 -> ReportsScreen(
                     viewModel = viewModel
+                )
+                7 -> AnnouncementScreen(
+                    viewModel = viewModel,
+                    isAdmin = true
                 )
             }
         }
@@ -193,13 +229,15 @@ fun AdminMainScreen(
 
     if (showAddComplaintDialog) {
         AddComplaintDialog(
+            categories = categories,
             onDismiss = { showAddComplaintDialog = false },
-            onConfirm = { name, phone, description ->
+            onConfirm = { name, phone, description, category ->
                 viewModel.addComplaint(
                     com.hfad.lacasapgmanagement.data.Complaint(
                         tenantName = name,
                         tenantPhone = phone,
                         description = description,
+                        category = category,
                         status = "Pending",
                         createdAt = System.currentTimeMillis()
                     )

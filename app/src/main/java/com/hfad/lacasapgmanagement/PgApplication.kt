@@ -8,7 +8,7 @@ import kotlinx.serialization.json.Json
 import com.hfad.lacasapgmanagement.data.AppDatabase
 import com.hfad.lacasapgmanagement.data.TenantRepository
 
-class PgApplication : Application() {
+class   PgApplication : Application() {
     val supabase by lazy {
         createSupabaseClient(
             supabaseUrl = "https://zzfqqbswqfjwgoqkdked.supabase.co",
@@ -33,9 +33,13 @@ class PgApplication : Application() {
             database.tenantDao(),
             database.paymentDao(),
             database.complaintDao(),
+            database.complaintCategoryDao(),
+            database.foodMenuItemDao(),
             database.bedDao(),
             database.branchDao(),
             database.pollDao(),
+            database.pollConfigurationDao(),
+            database.announcementDao(),
             supabase
         )
     }

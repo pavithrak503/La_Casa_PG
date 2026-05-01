@@ -6,7 +6,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Announcement
+import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Person
@@ -22,7 +27,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
+import android.net.Uri
 import com.hfad.lacasapgmanagement.R
 import com.hfad.lacasapgmanagement.data.Payment
 import com.hfad.lacasapgmanagement.data.Tenant
@@ -88,9 +96,11 @@ fun TenantDashboardScreen(
                         Text(
                             text = when(selectedTab) {
                                 0 -> "My Profile"
-                                1 -> "Food Poll"
-                                2 -> "My Complaints"
-                                else -> "My Receipts"
+                                1 -> "Announcements"
+                                2 -> "Food Poll"
+                                3 -> "My Complaints"
+                                4 -> "My Payments"
+                                else -> "My Rules"
                             },
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                         )
@@ -108,35 +118,53 @@ fun TenantDashboardScreen(
                 NavigationBarItem(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-                    label = { Text("Profile") }
+                    icon = { Icon(if (selectedTab == 0) Icons.Filled.Person else Icons.Default.Person, contentDescription = "Profile") },
+                    label = { Text("Profile", style = MaterialTheme.typography.labelSmall, maxLines = 1) },
+                    alwaysShowLabel = false
                 )
                 NavigationBarItem(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    icon = { Icon(Icons.Default.Poll, contentDescription = "Poll") },
-                    label = { Text("Poll") }
+                    icon = { Icon(Icons.AutoMirrored.Filled.Announcement, contentDescription = "Announcements") },
+                    label = { Text("Announce", style = MaterialTheme.typography.labelSmall, maxLines = 1) },
+                    alwaysShowLabel = false
                 )
                 NavigationBarItem(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
-                    icon = { Icon(Icons.Default.ReportProblem, contentDescription = "Complaints") },
-                    label = { Text("Complaints") }
+                    icon = { Icon(if (selectedTab == 2) Icons.Filled.Poll else Icons.Default.Poll, contentDescription = "Poll") },
+                    label = { Text("Poll", style = MaterialTheme.typography.labelSmall, maxLines = 1) },
+                    alwaysShowLabel = false
                 )
                 NavigationBarItem(
                     selected = selectedTab == 3,
                     onClick = { selectedTab = 3 },
-                    icon = { Icon(Icons.Default.Receipt, contentDescription = "Receipts") },
-                    label = { Text("Receipts") }
+                    icon = { Icon(if (selectedTab == 3) Icons.Filled.ReportProblem else Icons.Default.ReportProblem, contentDescription = "Complaints") },
+                    label = { Text("Complaints", style = MaterialTheme.typography.labelSmall, maxLines = 1) },
+                    alwaysShowLabel = false
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 4,
+                    onClick = { selectedTab = 4 },
+                    icon = { Icon(if (selectedTab == 4) Icons.Filled.Receipt else Icons.Default.Receipt, contentDescription = "Payments") },
+                    label = { Text("Payments", style = MaterialTheme.typography.labelSmall, maxLines = 1) },
+                    alwaysShowLabel = false
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 5,
+                    onClick = { selectedTab = 5 },
+                    icon = { Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = "Rules") },
+                    label = { Text("Rules", style = MaterialTheme.typography.labelSmall, maxLines = 1) },
+                    alwaysShowLabel = false
                 )
             }
         },
         floatingActionButton = {
-            if (selectedTab == 0) {
+            if (selectedTab == 4) {
                 FloatingActionButton(onClick = { showAddPaymentDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "Make Payment")
+                    Icon(Icons.Default.Add, contentDescription = "Notify Payment")
                 }
-            } else if (selectedTab == 1) {
+            } else if (selectedTab == 3) {
                 FloatingActionButton(onClick = { showAddComplaintDialog = true }) {
                     Icon(Icons.Default.Add, contentDescription = "Raise Complaint")
                 }
@@ -156,44 +184,31 @@ fun TenantDashboardScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(16.dp),
+                            .padding(12.dp),
                         horizontalAlignment = Alignment.Start
                     ) {
                         Text(
                             text = "Welcome, ${tenant!!.name}",
-                            style = MaterialTheme.typography.headlineMedium,
-                            modifier = Modifier.padding(bottom = 24.dp)
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 16.dp)
                         )
                         
                         TenantInfoItem(label = "Mobile Number", value = tenant!!.phoneNumber)
                         TenantInfoItem(label = "Room Number", value = tenant!!.roomNumber)
                         TenantInfoItem(label = "Monthly Rent", value = "₹${tenant!!.rentAmount}")
                         TenantInfoItem(label = "Security Deposit", value = "₹${tenant!!.depositAmount}")
-                        
-                        Spacer(modifier = Modifier.height(24.dp))
-                        
-                        Text(
-                            text = "Payment History",
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                        
-                        if (payments.isEmpty()) {
-                            Text("No payment history found.")
-                        } else {
-                            LazyColumn(modifier = Modifier.weight(1f)) {
-                                items(payments) { payment ->
-                                    TenantPaymentItem(payment)
-                                }
-                            }
-                        }
                     }
                 } else if (selectedTab == 1) {
-                    PollScreen(viewModel = viewModel, isAdmin = false, tenantId = tenant!!.id)
+                    AnnouncementScreen(viewModel = viewModel, isAdmin = false)
                 } else if (selectedTab == 2) {
+                    PollScreen(viewModel = viewModel, isAdmin = false, tenantId = tenant!!.id)
+                } else if (selectedTab == 3) {
                     TenantComplaintsScreen(viewModel, phone)
+                } else if (selectedTab == 4) {
+                    TenantPaymentsScreen(context, tenant!!, payments)
                 } else {
-                    TenantReceiptsScreen(context, tenant!!, payments)
+                    TenantRulesScreen()
                 }
             } else {
                 Text("Failed to load tenant details.")
@@ -201,16 +216,20 @@ fun TenantDashboardScreen(
         }
     }
 
+    val categories by viewModel.allComplaintCategories.collectAsState()
+
     if (showAddComplaintDialog && tenant != null) {
         AddComplaintDialog(
+            categories = categories,
             onDismiss = { showAddComplaintDialog = false },
-            onConfirm = { description ->
+            onConfirm = { description, category ->
                 viewModel.addComplaint(
                     com.hfad.lacasapgmanagement.data.Complaint(
                         tenantId = tenant!!.id,
                         tenantName = tenant!!.name,
                         tenantPhone = tenant!!.phoneNumber,
-                        description = description
+                        description = description,
+                        category = category
                     )
                 )
                 showAddComplaintDialog = false
@@ -222,16 +241,19 @@ fun TenantDashboardScreen(
         TenantAddPaymentDialog(
             tenant = tenant!!,
             onDismiss = { showAddPaymentDialog = false },
-            onConfirm = { amount, month, type ->
+            onConfirm = { amount, dateLong, type, proofUri ->
+                val monthFormatter = SimpleDateFormat("MMM yyyy", Locale.getDefault())
+                val monthString = monthFormatter.format(Date(dateLong))
                 viewModel.addPayment(
                     Payment(
                         tenantId = tenant!!.id,
                         amount = amount,
-                        date = System.currentTimeMillis(),
-                        month = month,
+                        date = dateLong,
+                        month = monthString,
                         paymentType = type,
                         tenantPhone = tenant!!.phoneNumber,
-                        status = "Pending"
+                        status = "Pending",
+                        proofImageUrl = proofUri?.toString()
                     )
                 )
                 showAddPaymentDialog = false
@@ -245,39 +267,136 @@ fun TenantDashboardScreen(
     }
 }
 
+@Composable
+fun TenantRulesScreen() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(12.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        val rules = listOf(
+            "1. Gate closing time is 11:00 PM.",
+            "2. No loud music after 10:00 PM.",
+            "3. Visitors are not allowed in rooms after 8:00 PM.",
+            "4. Please keep your room and common areas clean.",
+            "5. Rent must be paid by the 5th of every month.",
+            "6. Electricity charges are extra as per sub-meter.",
+            "7. 30 days notice period is mandatory before vacating.",
+            "8. Smoking and alcohol are strictly prohibited inside the premises."
+        )
+
+        rules.forEach { rule ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Text(
+                    text = rule,
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TenantAddPaymentDialog(
     tenant: Tenant,
     onDismiss: () -> Unit,
-    onConfirm: (Double, String, String) -> Unit
+    onConfirm: (Double, Long, String, Uri?) -> Unit
 ) {
     var amount by remember { mutableStateOf(tenant.rentAmount.toString()) }
-    var month by remember { mutableStateOf("") }
     var paymentType by remember { mutableStateOf("Rent") }
+    var proofUri by remember { mutableStateOf<Uri?>(null) }
+    
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        proofUri = uri
+    }
+    
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = System.currentTimeMillis()
+    )
+    var showDatePicker by remember { mutableStateOf(false) }
+    
+    val dateFormatter = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+    val selectedDateText = datePickerState.selectedDateMillis?.let {
+        dateFormatter.format(Date(it))
+    } ?: "Select Date"
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Make Payment") },
+        title = { Text("Notify Payment") },
         text = {
             Column {
+                Text(
+                    text = "Please transfer the amount via UPI or Cash, then select the payment date below.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+                
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
-                    label = { Text("Amount") },
+                    label = { Text("Amount Paid") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                         keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
                     )
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = month,
-                    onValueChange = { month = it },
-                    label = { Text("Month (e.g. Oct 2024)") },
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                OutlinedCard(
+                    onClick = { showDatePicker = true },
                     modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text("Payment Date", style = MaterialTheme.typography.labelSmall)
+                            Text(selectedDateText, style = MaterialTheme.typography.bodyLarge)
+                        }
+                        Icon(Icons.Default.Add, contentDescription = null) // Using Add as a placeholder for calendar icon if not imported
+                    }
+                }
+                
+                Text(
+                    text = "Payment Type",
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
                 )
-                Row(modifier = Modifier.padding(top = 8.dp)) {
+                Row {
                     FilterChip(
                         selected = paymentType == "Rent",
                         onClick = { paymentType = "Rent" },
@@ -290,17 +409,46 @@ fun TenantAddPaymentDialog(
                         label = { Text("Deposit") }
                     )
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedCard(
+                    onClick = { launcher.launch(arrayOf("image/*")) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text("Proof of Payment", style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                text = if (proofUri != null) "Image Selected" else "Upload Screenshot",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (proofUri != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        Icon(
+                            painter = painterResource(id = android.R.drawable.ic_menu_camera),
+                            contentDescription = null
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     val amountDouble = amount.toDoubleOrNull() ?: 0.0
-                    onConfirm(amountDouble, month, paymentType)
+                    val dateLong = datePickerState.selectedDateMillis ?: System.currentTimeMillis()
+                    onConfirm(amountDouble, dateLong, paymentType, proofUri)
                 },
-                enabled = amount.isNotEmpty() && month.isNotEmpty()
+                enabled = amount.isNotEmpty() && proofUri != null
             ) {
-                Text("Pay")
+                Text("Submit for Verification")
             }
         },
         dismissButton = {
@@ -338,27 +486,77 @@ fun TenantComplaintsScreen(viewModel: TenantViewModel, phone: String) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddComplaintDialog(
+    categories: List<com.hfad.lacasapgmanagement.data.ComplaintCategory>,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
+    onConfirm: (String, String) -> Unit
 ) {
     var description by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf(if (categories.isNotEmpty()) categories[0].name else "General") }
+    var expanded by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Raise a Complaint") },
         text = {
-            OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                label = { Text("Describe your issue") },
-                modifier = Modifier.fillMaxWidth().height(120.dp)
-            )
+            Column {
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        value = selectedCategory,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Category") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        if (categories.isEmpty()) {
+                            DropdownMenuItem(
+                                text = { Text("General") },
+                                onClick = {
+                                    selectedCategory = "General"
+                                    expanded = false
+                                }
+                            )
+                        } else {
+                            categories.forEach { category ->
+                                DropdownMenuItem(
+                                    text = { Text(category.name) },
+                                    onClick = {
+                                        selectedCategory = category.name
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Describe your issue") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                )
+            }
         },
         confirmButton = {
             Button(
-                onClick = { onConfirm(description) },
+                onClick = { onConfirm(description, selectedCategory) },
                 enabled = description.isNotBlank()
             ) {
                 Text("Submit")
@@ -374,9 +572,9 @@ fun AddComplaintDialog(
 
 @Composable
 fun TenantInfoItem(label: String, value: String) {
-    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-        Text(text = value, style = MaterialTheme.typography.bodyLarge)
+    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+        Text(text = value, style = MaterialTheme.typography.bodySmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)
         HorizontalDivider(modifier = Modifier.padding(top = 4.dp), thickness = 0.5.dp)
     }
 }
@@ -385,59 +583,109 @@ fun TenantInfoItem(label: String, value: String) {
 fun TenantComplaintItem(complaint: com.hfad.lacasapgmanagement.data.Complaint) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = complaint.description, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                text = "Status: ${complaint.status}",
-                style = MaterialTheme.typography.bodySmall,
-                color = if (complaint.status == "Resolved") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-            )
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = complaint.category,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                )
+                Surface(
+                    color = if (complaint.status == "Resolved") MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = complaint.status,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (complaint.status == "Resolved") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = complaint.description, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
 
 @Composable
-fun TenantReceiptsScreen(context: Context, tenant: Tenant, payments: List<Payment>) {
-    val verifiedPayments = payments.filter { it.status == "Verified" }
-
-    if (verifiedPayments.isEmpty()) {
+fun TenantPaymentsScreen(context: Context, tenant: Tenant, payments: List<Payment>) {
+    if (payments.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No verified receipts available.")
+            Text("No payment history found.", style = MaterialTheme.typography.bodySmall)
         }
     } else {
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            items(verifiedPayments) { payment ->
-                ReceiptItem(context, tenant, payment)
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(payments) { payment ->
+                TenantPaymentItemWithReceipt(context, tenant, payment)
             }
         }
     }
 }
 
 @Composable
-fun ReceiptItem(context: Context, tenant: Tenant, payment: Payment) {
+fun TenantPaymentItemWithReceipt(context: Context, tenant: Tenant, payment: Payment) {
     val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = "Receipt: ${payment.month}", style = MaterialTheme.typography.titleMedium)
-                Text(text = "Amount: ₹${payment.amount}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Date: ${dateFormat.format(Date(payment.date))}", style = MaterialTheme.typography.bodySmall)
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = payment.month, style = MaterialTheme.typography.titleSmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                    Text(text = "Amount: ₹${payment.amount}", style = MaterialTheme.typography.bodySmall)
+                    Text(text = "Date: ${dateFormat.format(Date(payment.date))}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Surface(
+                        color = when(payment.status) {
+                            "Verified" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            "Rejected" -> MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+                            else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+                        },
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = payment.status,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = when(payment.status) {
+                                "Verified" -> MaterialTheme.colorScheme.primary
+                                "Rejected" -> MaterialTheme.colorScheme.error
+                                else -> MaterialTheme.colorScheme.secondary
+                            }
+                        )
+                    }
+                    Text(text = payment.paymentType, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
-            Button(onClick = { generateAndShareReceipt(context, tenant, payment) }) {
-                Text("Download")
+            
+            if (payment.status == "Verified") {
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = { generateAndShareReceipt(context, tenant, payment) },
+                    modifier = Modifier.align(Alignment.End).height(32.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Receipt", style = MaterialTheme.typography.labelSmall)
+                }
             }
         }
     }
